@@ -242,4 +242,6 @@ def extract_name_constraints(
     excluded, err = _collect(nc.excluded_subtrees, "excluded")
     if err:
         return None, err
-    return DnsConstraints(permitted=permitted, excluded=excluded), None
+    # An absent permittedSubtrees field means "no permitted state for the
+    # DNS name form" (None), which differs from an empty intersection ().
+    return DnsConstraints(permitted=permitted or None, excluded=excluded), None

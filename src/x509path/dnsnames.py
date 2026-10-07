@@ -132,9 +132,16 @@ class DnsConstraints:
 
     Only dNSName entries may appear in a name constraints extension; any
     other GeneralName type rejects the certificate at profile-check time.
+
+    ``permitted=None`` means "no permitted-subtree state": any DNS name is
+    allowed unless excluded.  ``permitted=()`` is the *opposite* extreme:
+    the intersection of the permitted subtrees seen so far is empty, so no
+    DNS name is allowed at all.  The two must never be conflated — merging
+    disjoint permitted cones (``example.com`` below ``example.org``) yields
+    the empty set, not an unrestricted state.
     """
 
-    permitted: tuple = ()
+    permitted: Optional[tuple] = None
     excluded: tuple = ()
 
     def merge(self, other: "DnsConstraints") -> "DnsConstraints":
@@ -146,10 +153,10 @@ class DnsConstraints:
         # inside every previous permitted cone; keeping all surviving
         # narrowest cones preserves exactly the matched-name intersection
         # (a leading-dot cone adds nothing beyond a contained plain cone).
-        if not self.permitted:
-            permitted = tuple(other.permitted)
-        elif not other.permitted:
-            permitted = tuple(self.permitted)
+        if self.permitted is None:
+            permitted = other.permitted
+        elif other.permitted is None:
+            permitted = self.permitted
         else:
             # A constraint from either state survives when its cone lies
             # within EVERY constraint of the other state.  Broader but still
@@ -173,14 +180,14 @@ class DnsConstraints:
         )
 
     def is_empty(self) -> bool:
-        return not self.permitted and not self.excluded
+        return self.permitted is None and not self.excluded
 
     def allows(self, name: str) -> bool:
         n = name.lower()
         for excl in self.excluded:
             if constraint_matches(excl, n):
                 return False
-        if not self.permitted:
+        if self.permitted is None:
             return True
         return any(constraint_matches(p, n) for p in self.permitted)
 
@@ -189,7 +196,9 @@ class DnsConstraints:
         for excl in self.excluded:
             if constraint_matches(excl, n):
                 return f"DNS name {n!r} excluded by subtree {excl!r}"
-        if self.permitted and not any(constraint_matches(p, n) for p in self.permitted):
+        if self.permitted is not None and not any(
+            constraint_matches(p, n) for p in self.permitted
+        ):
             return (
                 f"DNS name {n!r} not within permitted subtrees "
                 f"{sorted(self.permitted)!r}"

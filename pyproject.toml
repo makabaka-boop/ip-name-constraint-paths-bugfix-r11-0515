@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "x509path"
 version = "0.1.0"
-description = "Restricted offline X.509 path validation CLI (P-256 / ECDSA-SHA256, DNS-only)"
+description = "Restricted offline X.509 path validation CLI (P-256 / ECDSA-SHA256, DNS and IP)"
 requires-python = ">=3.10"
 dependencies = ["cryptography>=42"]
 

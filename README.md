@@ -104,6 +104,17 @@ x509path \
   [--json]
 ```
 
+`--dns-name` and `--ip-address` are mutually exclusive.  IP mode takes an
+exact, unscoped IPv4/IPv6 literal (no port, brackets, zone id or subnet),
+canonicalizes it, and matches it against iPAddress SAN entries by address
+content — a dNSName never satisfies an IP request, and IPv4/IPv6 are never
+converted into each other.  SANs and name constraints may mix dNSName and
+iPAddress; constraint state is tracked per name form (permitted subtrees of
+one form never restrict the other), permitted ranges intersect across CAs,
+exclusions union and always win, and every subordinate SAN name is checked.
+JSON output marks `"name_kind": "ip"` and the canonical `"ip_address"`;
+text and JSON always show the same canonical name and the same display path.
+
 The pin may also be supplied via `--anchor-pin-file` or
 `X509PATH_ANCHOR_PIN`. Up to 8 distinct intermediates are accepted; a PEM
 file may concatenate several certificates. PEM and DER inputs are accepted.
@@ -130,12 +141,20 @@ docker compose run --rm \
   -e X509PATH_SERVER=/app/examples/pki/extra/server-org.pem \
   -e X509PATH_JSON=1 \
   validator; echo "exit=$?"
+
+# IP-address verification of the mixed-SAN sample leaf
+docker compose run --rm \
+  -e X509PATH_SERVER=/app/examples/pki/server-ip.pem \
+  -e X509PATH_INTERMEDIATES=/app/examples/pki/intermediates/issuing-ip.pem \
+  -e X509PATH_IP_ADDRESS=2001:db8::10 \
+  validator
 ```
 
 Environment variables consumed by `compose/entrypoint.sh`:
 `X509PATH_ANCHOR`, `X509PATH_ANCHOR_PIN` (path to the pin **file**),
 `X509PATH_SERVER`, `X509PATH_INTERMEDIATES` (colon- or whitespace-separated),
-`X509PATH_AT`, `X509PATH_DNS_NAME`, `X509PATH_JSON`, `X509PATH_EXTRA_ARGS`.
+`X509PATH_AT`, `X509PATH_DNS_NAME`, `X509PATH_IP_ADDRESS` (takes precedence
+over `X509PATH_DNS_NAME` when set), `X509PATH_JSON`, `X509PATH_EXTRA_ARGS`.
 
 ## Repository layout
 
@@ -143,13 +162,15 @@ Environment variables consumed by `compose/entrypoint.sh`:
 src/x509path/
   certwrap.py    parsing, DER digests, single-edge P-256 ECDSA verification
   dnsnames.py    ASCII DNS parsing + RFC 5280 subtree matching/intersection
+  generalnames.py mixed dNSName/iPAddress SAN + per-name-form constraints
+  ipvalidate.py  IP-mode chain validation (all candidates, deterministic)
   rules.py       per-certificate profile/extension rules
   validate.py    signature-bound chain enumeration, cycle guard, RFC 5280
                  top-down validation, deterministic display path, reporting
   cli.py         command line
 scripts/generate_sample_pki.py
 compose.yaml, Dockerfile, compose/entrypoint.sh
-tests/           PKI factory + 68 tests
+tests/           PKI factory + 116 tests
 ```
 
 ## Running the tests

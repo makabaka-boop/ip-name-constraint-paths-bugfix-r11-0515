@@ -76,9 +76,11 @@ def _dn(name) -> str:
 
 
 def _print_human(report: PathReport, anchor: Cert, stream) -> None:
+    # DNS and IP output show the same canonical name the JSON report uses.
+    label = "IP" if getattr(report, "name_kind", "dns") == "ip" else "Name"
     if report.trusted:
         stream.write("RESULT: TRUSTED\n")
-        stream.write(f"Name     : {report.dns_name}\n")
+        stream.write(f"{label:<9}: {report.dns_name}\n")
         stream.write(f"moment   : {report.moment.isoformat()}\n")
         stream.write("display path (unique, by DER digest order):\n")
         for i, cert in enumerate(report.chosen_chain.certs):
@@ -95,7 +97,7 @@ def _print_human(report: PathReport, anchor: Cert, stream) -> None:
         return
 
     stream.write("RESULT: NOT TRUSTED\n")
-    stream.write(f"Name     : {report.dns_name}\n")
+    stream.write(f"{label:<9}: {report.dns_name}\n")
     if report.failures:
         stream.write(
             f"{len(report.failures)} complete candidate chain(s) reached the "

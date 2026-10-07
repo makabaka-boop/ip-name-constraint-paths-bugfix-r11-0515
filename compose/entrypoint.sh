@@ -10,7 +10,10 @@
 #   X509PATH_SERVER        path to the server certificate        (required)
 #   X509PATH_INTERMEDIATES whitespace/colon separated intermediate files
 #   X509PATH_AT            ISO-8601 verification moment w/ tz    (required)
-#   X509PATH_DNS_NAME      exact ASCII DNS name                  (required)
+#   X509PATH_DNS_NAME      exact ASCII DNS name            (required unless
+#                          X509PATH_IP_ADDRESS is set)
+#   X509PATH_IP_ADDRESS    exact unscoped IPv4/IPv6 literal; when set it
+#                          takes precedence over X509PATH_DNS_NAME
 #   X509PATH_JSON          set to 1 for JSON output
 #   X509PATH_EXTRA_ARGS    any additional arguments
 set -eu
@@ -19,14 +22,21 @@ set -eu
 : "${X509PATH_ANCHOR_PIN:?X509PATH_ANCHOR_PIN (pin file) is required}"
 : "${X509PATH_SERVER:?X509PATH_SERVER is required}"
 : "${X509PATH_AT:?X509PATH_AT verification moment is required}"
-: "${X509PATH_DNS_NAME:?X509PATH_DNS_NAME is required}"
 
 set -- \
   --anchor "$X509PATH_ANCHOR" \
   --anchor-pin-file "$X509PATH_ANCHOR_PIN" \
   --server "$X509PATH_SERVER" \
-  --at "$X509PATH_AT" \
-  --dns-name "$X509PATH_DNS_NAME"
+  --at "$X509PATH_AT"
+
+if [ -n "${X509PATH_IP_ADDRESS:-}" ]; then
+  set -- "$@" --ip-address "$X509PATH_IP_ADDRESS"
+elif [ -n "${X509PATH_DNS_NAME:-}" ]; then
+  set -- "$@" --dns-name "$X509PATH_DNS_NAME"
+else
+  echo "error: X509PATH_IP_ADDRESS or X509PATH_DNS_NAME is required" >&2
+  exit 2
+fi
 
 if [ -n "${X509PATH_INTERMEDIATES:-}" ]; then
   # Accept colon- or whitespace-separated lists.

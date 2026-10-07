@@ -200,6 +200,10 @@ class PathReport:
     dead_ends: List[DeadEnd] = field(default_factory=list)
     leaf_san_error: Optional[str] = None
 
+    # Plain class attribute (not a dataclass field): IpPathReport overrides
+    # it so text output can label the requested name correctly.
+    name_kind = "dns"
+
     def as_dict(self) -> dict:
         out = {
             "trusted": self.trusted,
