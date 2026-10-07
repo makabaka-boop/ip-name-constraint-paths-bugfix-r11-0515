@@ -1,0 +1,35 @@
+# Offline X.509 path validation entry point.
+#
+# The validator service is given NO network namespace, and the CLI itself
+# performs no revocation queries, AIA fetches, or any other network I/O.
+#
+# Quick start with the bundled sample PKI (generated into examples/):
+#
+#   python3 scripts/generate_sample_pki.py
+#   docker compose run --rm \
+#     -e X509PATH_AT=2026-06-15T12:00:00Z \
+#     -e X509PATH_DNS_NAME=www.good.example.com \
+#     validator
+#
+services:
+  validator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: x509path-validator:local
+    network_mode: none
+    environment:
+      X509PATH_ANCHOR: /app/examples/pki/anchor.pem
+      X509PATH_ANCHOR_PIN: /app/examples/pki/anchor.pin
+      X509PATH_SERVER: /app/examples/pki/server.pem
+      X509PATH_INTERMEDIATES: >-
+        /app/examples/pki/intermediates/rollover-new.pem
+        /app/examples/pki/intermediates/issuing-good.pem
+        /app/examples/pki/intermediates/issuing-bad.pem
+      X509PATH_AT: "${X509PATH_AT:-2026-06-15T12:00:00Z}"
+      X509PATH_DNS_NAME: "${X509PATH_DNS_NAME:-www.good.example.com}"
+      X509PATH_JSON: "${X509PATH_JSON:-0}"
+    # Read-only root filesystem; only /tmp may be writable.
+    read_only: true
+    tmpfs:
+      - /tmp

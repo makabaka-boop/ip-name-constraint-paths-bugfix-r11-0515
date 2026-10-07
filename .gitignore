@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+
+node_modules/
+dist-test/
+dist/
+__pycache__/
+*.pyc
+*.db
+.pytest_cache/
+*.tsbuildinfo
